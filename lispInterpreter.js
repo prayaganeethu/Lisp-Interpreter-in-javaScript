@@ -1,7 +1,20 @@
 let lispI = require('./lispInterpret.js');
 
-let fs = require('fs');
+const readline = require('readline');
 
-fs.readFile(process.argv[2], 'utf8', function(err, contents) {
-   console.log(lispI.interpretLisp(contents));
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
 });
+
+var recursiveAsyncReadLine = function () {
+  rl.question('>>>', function (answer) {
+    if (answer == 'exit') 
+      return rl.close();
+  	answer = lispI.interpretLisp(answer);
+    console.log(`Result: ${JSON.stringify(answer)}`);
+    recursiveAsyncReadLine(); 
+  });
+};
+
+recursiveAsyncReadLine(); 
