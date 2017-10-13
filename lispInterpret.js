@@ -34,7 +34,7 @@ exports.interpretLisp = function (lispInput) {
   return null
 }
 
-let lispParser = factoryParser(expressionParser,  defineParser, ifParser, opParser, quoteParser, literalParser, symbolParser)
+let lispParser = factoryParser(expressionParser,  defineParser, ifParser, opParser, quoteParser, setParser, literalParser, symbolParser)
 
 function factoryParser (...parsers) {
   return function (In) {
@@ -68,6 +68,7 @@ function defineParser (lispInput) {
     let symbol = res[0]
     let val = lispParser(spaceParser(res[1]))
     env[symbol] = val[0]
+    console.log(env)
     return [null, val[1]]
   }
   return null
@@ -150,6 +151,25 @@ function quoteParser (lispInput) {
     i++
     lispInput = spaceParser(lispInput.slice(i))
     return [res, lispInput]
+  }
+  return null
+}
+
+function setParser (lispInput) {
+  console.log('set!')
+  let res
+  if (lispInput.slice(0, 4) === 'set!') {
+    lispInput = spaceParser(lispInput.slice(4))
+    res = lispInput.split(' ')[0]
+    let len = res.length
+    lispInput = lispInput.slice(len + 1)
+    if (res in env) {
+      let val = lispParser(lispInput)
+      env[res] = val[0]
+      lispInput = val[1]
+    }
+    console.log(env)
+    return [null, lispInput]
   }
   return null
 }
