@@ -2,4 +2,4 @@
 
 Parses and evaluates lisp program on the go.
 
-Run lispInterpreter.js, pass the lisp program file as argument.
+Run lispInterpreter.js, Type 'exit' to exit the "READ EVAL PRINT LOOP"

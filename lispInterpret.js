@@ -1,3 +1,4 @@
+let opArr = ['+', '-', '/', '*', '<', '>', '<=', '>=']
 let env = {
   '+': (arg) => arg.reduce((sum, val) => sum + val),
   '-': (arg) => arg.reduce((dif, val) => dif - val),
@@ -33,7 +34,7 @@ exports.interpretLisp = function (lispInput) {
   return null
 }
 
-let lispParser = factoryParser(expressionParser, defineParser, ifParser, opParser, literalParser, symbolParser)
+let lispParser = factoryParser(expressionParser, lambdaParser, defineParser, ifParser, opParser, literalParser, symbolParser)
 
 function factoryParser (...parsers) {
   return function (In) {
@@ -84,19 +85,20 @@ function ifParser (lispInput) {
 }
 
 function opParser (lispInput) {
+  console.log('op')
   let op = lispInput.split(' ')[0]
   let j = op.length
   let arg = ''
   let argArr = []
   lispInput = spaceParser(lispInput.slice(j + 1))
-  if (op in env) {
+  if (opArr.includes(op)) {
     while (lispInput[0] !== ')') {
       if (lispInput[0] !== ' ' && lispInput[0] !== '(') {
         arg += lispInput[0]
         lispInput = lispInput.slice(1)
       }
       else if (lispInput[0] === ' ') {
-        argArr.push(parseFloat(arg))
+        argArr.push(parseFloat(lispParser(arg)[0]))
         lispInput = lispInput.slice(1)
         arg = ''
       }
@@ -107,7 +109,7 @@ function opParser (lispInput) {
       }
     }
     if (arg) {
-      argArr.push(parseFloat(arg))
+      argArr.push(parseFloat(lispParser(arg)[0]))
     }
     return [env[op](argArr), lispInput]
   }
@@ -115,9 +117,13 @@ function opParser (lispInput) {
 }
 
 function symbolParser (lispInput) {
+  console.log('symbol')
   let symbol = ''
   let i = 0
   if (/^[a-zA-Z-]/.test(lispInput[i])) {
+    if (lispInput in env) {
+      return [env[lispInput], '']
+    }
     while (lispInput[i] !== ' ' && lispInput[i] !== ')') {
       symbol += lispInput[i]
       i++
@@ -128,6 +134,7 @@ function symbolParser (lispInput) {
 }
 
 function literalParser (lispInput) {
+  console.log('literal')
   let num = ''
   let i = 0
   if (/[0-9]+/.test(lispInput[i])) {
