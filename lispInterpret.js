@@ -1,4 +1,4 @@
-let opArr = ['+', '-', '/', '*', '<', '>', '<=', '>=', 'pow', 'pi', 'length', 'max', 'min', 'eq?', 'equal?', 'sqrt', 'round', 'not', 'abs', 'append']
+// let opArr = ['+', '-', '/', '*', '<', '>', '<=', '>=', 'pow', 'pi', 'length', 'max', 'min', 'eq?', 'equal?', 'sqrt', 'round', 'not', 'abs', 'append']
 let env = {
   '+': (arg) => arg.reduce((sum, val) => sum + val),
   '-': (arg) => arg.reduce((dif, val) => dif - val),
@@ -26,11 +26,15 @@ exports.interpretLisp = function (lispInput) {
   // let envObj = Object.assign({}, env)
   // console.log(envObj)
   let res
+  // let envObj = new Env(env)
+  // console.log(envObj.outer)
+  // console.log(typeof lispInput)
   if (lispInput) {
     while (lispInput) {
       res = lispParser(spaceParser(lispInput), env)
       lispInput = res[1]
     }
+    console.log('FIRSTTTTTTTTTTTTT', res)
     return res[0]
   }
   return null
@@ -39,6 +43,7 @@ exports.interpretLisp = function (lispInput) {
 let lispParser = factoryParser(expressionParser, defineParser, lambdaParser, ifParser, opParser, quoteParser, setParser, literalParser, symbolParser)
 
 function factoryParser (...parsers) {
+  console.log('factory')
   return function (In) {
     for (let i = 0; i < parsers.length; i++) {
       let result = parsers[i](In, env)
@@ -49,6 +54,7 @@ function factoryParser (...parsers) {
 }
 
 function expressionParser (lispInput, env) {
+  console.log('expr')
   let res
   if (lispInput[0] !== '(') {
     return null
@@ -57,14 +63,18 @@ function expressionParser (lispInput, env) {
     res = lispParser(spaceParser(lispInput.slice(1)), env)
     lispInput = res[1]
   }
+  console.log('yooooo', [res[0], spaceParser(lispInput.slice(1))])
   return [res[0], spaceParser(lispInput.slice(1))]
 }
 
 function defineParser (lispInput, env) {
+  console.log('define')
   if (lispInput.slice(0, 6) === 'define') {
     let res = symbolParser(spaceParser(lispInput.slice(7)), env)
+    // console.log('defineeeeeee', res)
     let symbol = res[0]
     let val = lispParser(spaceParser(res[1]), env)
+    // console.log('define valllllll', val)
     env[symbol] = val[0]
     console.log(env)
     return [null, val[1]]
@@ -73,62 +83,55 @@ function defineParser (lispInput, env) {
 }
 
 function lambdaParser (lispInput, env) {
+  console.log('lambda')
   if (lispInput.slice(0, 6) === 'lambda') {
-    let res = evalLambda(spaceParser(lispInput.slice(6)))
-    console.log(res)
+    return parseLambda(spaceParser(lispInput.slice(6)))
+    // console.log('lambdaaaaaa',res)
   }
   return null
 }
 
-function evalLambda (lispInput, env) {
-  let fnObj = {}, i = 1, count = 0, args = []
-  fnObj.env = {}
+function parseLambda (lispInput, env) {
+  console.log('parseLambda')
+  let i = 1, count = 0, params = [], func = {}
   if (lispInput[0] === '(') {
     while (lispInput[i] !== ')') {
-      if (lispInput[i] !== ' ' && lispInput[i] !== ',') {
-        fnObj.env[lispInput[i]] = ''
-        args.push(lispInput[i])
+      if (lispInput[i] !== ' ') {
+        params.push(lispInput[i])
       }
       i++
     }
+    func.params = params
     lispInput = spaceParser(lispInput.slice(i + 1))
-    fnObj.body = ''
+    let fnBody = ''
     while (lispInput) {
       if (lispInput[0] === '(') {
         count++
-        fnObj.body += lispInput[0]
+        fnBody += lispInput[0]
         lispInput = lispInput.slice(1)
       }
       else if (lispInput[0] === ')') {
         count--
-        fnObj.body += lispInput[0]
+        fnBody += lispInput[0]
         lispInput = lispInput.slice(1)
         if (count === 0) {
           break
         }
       }
       else if (lispInput[0] !== '(' && lispInput[0] !== ')') {
-        fnObj.body += lispInput[0]
+        fnBody += lispInput[0]
         lispInput = lispInput.slice(1)
       }
     }
-    console.log(lispInput, fnObj.env, fnObj.body)
-    if (lispInput[0] !== ')') {
-      while (lispInput[0] !== ')') {
-        if (lispInput[0] === ' ') {
-          lispInput = spaceParser(lispInput)
-        }
-        else {
-          fnObj.env[args.splice(0, 1)[0]] = lispInput[0]
-          lispInput = lispInput.slice(1)
-        }
-      }
-      console.log(fnObj.env)
-    }
+    func.body = fnBody
+    // console.log('HEYYY', params, fnBody)
+    return [func, lispInput]
   }
+  return null
 }
 
 function ifParser (lispInput, env) {
+  console.log('if')
   if (lispInput.slice(0, 2) === 'if') {
     let exp1 = lispParser(spaceParser(lispInput.slice(2)), env)
     let exprOne = exp1[0]
@@ -144,13 +147,14 @@ function ifParser (lispInput, env) {
 }
 
 function opParser (lispInput, env) {
-  // console.log('op')
+  console.log('op')
   let op = lispInput.split(' ')[0]
   let j = op.length
   let arg = ''
   let argArr = []
   lispInput = spaceParser(lispInput.slice(j + 1))
-  if (opArr.includes(op)) {
+  if ((op in env) && ((typeof env[op] === 'function') || (typeof env[op] === 'object'))) {
+    // console.log('HEREEEEEEEEE')
     while (lispInput[0] !== ')') {
       if (lispInput[0] !== ' ' && lispInput[0] !== '(') {
         arg += lispInput[0]
@@ -170,17 +174,44 @@ function opParser (lispInput, env) {
     if (arg) {
       argArr.push(parseFloat(lispParser(arg, env)[0]))
     }
-    return [env[op](argArr), lispInput]
+    // console.log('HEREEEEEEEEEE EEEE', argArr)
+    if (typeof env[op] === 'function') {
+      // console.log('EEEEEEEEEEEEEE', env[op](argArr), argArr)
+      return [env[op](argArr), lispInput]
+    }
+    else if (typeof env[op] === 'object') {
+      console.log('HEYYYYYYY', argArr, env[op].params)
+      env[op].env = {}
+      for (let i = 0; i < argArr.length; i++) {
+        env[op].env[env[op].params[i]] = argArr[i]
+      }
+      // console.log(env)
+      // console.log(lispParser(env[op].body, env[op].env)[0])
+      return procParser(env[op].params, env[op].body, env[op].env, env)
+    }
   }
   return null
 }
 
+function procParser (fnParams, fnBody, fnEnv, env) {
+  console.log('proc')
+  for (let i of fnParams) {
+    let regex = new RegExp(i, 'g')
+    fnBody = fnBody.replace(regex, fnEnv[i])
+  }
+  console.log('BODYYYY', fnBody)
+  console.log('procccccc', lispParser(fnBody, env))
+  return lispParser(fnBody, env)
+}
+
 function symbolParser (lispInput, env) {
-  // console.log('symbol')
+  console.log('symbol')
+  // let envObj = new Env(env)
   let symbol = ''
   let i = 0
   if (/^[a-zA-Z-]/.test(lispInput[i])) {
-    if (lispInput in env) {
+    // console.log(lispInput)
+    if (env[lispInput]) {
       return [env[lispInput], '']
     }
     while (lispInput[i] !== ' ' && lispInput[i] !== ')') {
@@ -193,7 +224,7 @@ function symbolParser (lispInput, env) {
 }
 
 function quoteParser (lispInput, env) {
-  // console.log('quote')
+  console.log('quote')
   let i = 0, res = ''
   if (lispInput.slice(0, 5) === 'quote') {
     lispInput = spaceParser(lispInput.slice(5))
@@ -210,7 +241,7 @@ function quoteParser (lispInput, env) {
 }
 
 function setParser (lispInput, env) {
-  // console.log('set!')
+  console.log('set!')
   let res
   if (lispInput.slice(0, 4) === 'set!') {
     lispInput = spaceParser(lispInput.slice(4))
@@ -229,7 +260,7 @@ function setParser (lispInput, env) {
 }
 
 function literalParser (lispInput, env) {
-  // console.log('literal')
+  console.log('literal')
   let num = ''
   let i = 0
   if (/[0-9]+/.test(lispInput[i])) {
