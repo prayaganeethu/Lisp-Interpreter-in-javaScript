@@ -223,6 +223,7 @@ function setParser (lispInput) {
       env[res] = val[0]
       lispInput = val[1]
     }
+    else return null
     return [null, lispInput]
   }
   return null

@@ -1,4 +1,4 @@
-let lispI = require('./lispInterpret.js')
+let lispI = require('./parsers.js')
 
 const readline = require('readline')
 
